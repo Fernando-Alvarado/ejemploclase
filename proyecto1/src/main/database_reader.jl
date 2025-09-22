@@ -138,4 +138,5 @@ Devuelve la ruta del archivo .tsp de entrada.
 """
 function encontrar_archivo_tsp()
     "src/inputs/input-150.tsp"
+    #"src/inputs/input-40.tsp"
 end

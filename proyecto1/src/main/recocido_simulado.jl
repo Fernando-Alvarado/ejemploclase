@@ -137,7 +137,7 @@ end
 
 Realiza un barrido 2-opt clásico sobre la solución dada.
 """
-function barrido_20pt(tsp::TSP, solucion::Vector{Int}, costo::Float64) 
+function barrido_2Opt(tsp::TSP, solucion::Vector{Int}, costo::Float64) 
     mejor_solucion = copy(solucion)
     mejor_costo = costo
     n = length(solucion)
@@ -150,7 +150,7 @@ function barrido_20pt(tsp::TSP, solucion::Vector{Int}, costo::Float64)
                 if delta < 0
                     reverse!(mejor_solucion, i+1, j)
                     mejor_costo += delta
-                    println(@sprintf("Costo: %.11f", mejor_costo))
+                    #println(@sprintf("Costo: %.11f", mejor_costo))
                     mejorado = true
                 end
             end
