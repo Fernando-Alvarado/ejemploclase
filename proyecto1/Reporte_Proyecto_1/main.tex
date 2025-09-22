@@ -1,0 +1,534 @@
+\documentclass{rapport}
+\usepackage{lipsum}
+\usepackage{gensymb}
+\usepackage{float}
+\usepackage{graphicx} % Required for inserting images
+\title{file title} %title of the file
+\usepackage[utf8]{inputenc}
+\usepackage{tcolorbox}
+\usepackage{geometry}
+\usepackage{array}
+\usepackage{adjustbox}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algorithmic}    
+\geometry{margin=1in}
+\usepackage{fancyhdr}
+\geometry{left=1in,right=1in,top=1in,bottom=1.4in}
+
+\usepackage[backend=bibtex,style=apa]{biblatex}
+\addbibresource{referencias.bib}
+
+\definecolor{navy}{rgb}{0.0, 0.0, 0.5}
+
+\begin{document}
+
+%----------- Report information ---------
+
+\uni{\textbf{Universidad Nacional Autónoma de México\\Facultad de Ciencias}}
+\ttitle{Implementación Recocido Simulado para resolver TSP} %title of the file
+\subject{Heurísticas de Optimización Combinatoria} % Subject name
+\topic{Assignment 1} % Topic name
+
+\professor{Canek Peláez Valdés } % information related to the professor
+\assistants{Leslie Ramírez Gallegos } % Lista de ayudantes
+
+\students{
+        Ortiz Montiel Diego Iain \\319072369\\[0.1cm]
+          }  % information related to the students
+
+%----------- Init -------------------
+        
+\buildmargins % display margins
+\buildcover % create the front cover of the document
+\toc % creates the table of contents
+
+%------------ Report body ----------------
+
+\section{Introducción}
+\subsection{Problema del Agente Viajante (TSP)}
+
+El problema del agente viajante (Travelling Salesperson Problem, TSP) es un problema de optimización combinatoria que busca la ruta más corta posible que visite cada una de las ciudades, dentro de un conjunto determinado, y regrese a la ciudad de origen. Formalmente:
+
+Sea un grafo completo $G = (V, E)$ donde $V = \{v_1, v_2, \dots, v_n\}$ es el conjunto de ciudades y $E$ el conjunto de aristas entre cada par de ciudades. Sea $d: V \times V \rightarrow \mathbb{R}^{+}$ una función que asigna a cada par de ciudades $(v_i, v_j)$ la distancia o costo de viaje entre ellas. El objetivo del TSP es encontrar una permutación $\pi$ de $V$ que minimice la longitud total del ciclo:
+
+\[
+\text{min } L(\pi) = d(v_{\pi(n)}, v_{\pi(1)}) + \sum_{i=1}^{n-1} d(v_{\pi(i)}, v_{\pi(i+1)})
+\]
+
+donde $L(\pi)$ representa la longitud total del recorrido que empieza y termina en la ciudad inicial, visitando cada ciudad una vez exactamente.
+
+\subsubsection{Contexto Histórico}
+
+El TSP tiene raíces que se remontan al siglo XIX. En 1832, se publicó en Alemania un manual titulado \textit{El Agente Viajante y la Forma en que Sigue su Camino}, que si bien, no trataba el problema matemático, ofrecía una guía práctica para vendedores ambulantes que enfrentaban diariamente el desafío de optimizar sus rutas. Posteriormente, en 1856, el matemático irlandés William Rowan Hamilton diseñó un juego llamado \textit{icosiano}, en el cual se debía encontrar un camino que visitara cada vértice de un dodecaedro una sola vez. Esto sentó las bases del concepto de \textit{ciclo hamiltoniano}, un componente clave del TSP; sin embargo, el TSP moderno fue formulado formalmente en 1930 por Karl Menger en Viena y Harvard, quien discutió el problema de encontrar el camino más corto entre $n$ puntos, aunque no se conocían algoritmos eficientes para resolverlo entonces.
+
+La investigación despegó en la década de 1950 en Estados Unidos, en especial en la Corporación RAND, donde matemáticos como George Dantzig, Ray Fulkerson y Selmer Johnson resolvieron un problema de 49 ciudades usando programación lineal combinada con cortes de planos \cite{Dantzig1954}. Este trabajo demostró que era posible abordar problemas complejos con el enfoque adecuado, estableciendo un precedente para la optimización matemática aplicada.
+
+Con la llegada de las computadoras, el TSP se convirtió en un problema central de la investigación en algoritmos. Así pues, en la década de 1970, Richard Karp lo clasificó como NP-completo, mostrando que no se conoce un algoritmo eficiente que garantice la solución óptima en todos los casos \cite{Karp1972}.
+
+\subsubsection{Complejidad Computacional}
+
+El problema del TSP tiene dos formulaciones principales: la \textbf{versión de decisión} y la \textbf{versión de optimización}.  
+
+\paragraph{Versión de Decisión}
+Dado un grafo completo $G=(V,E)$ con función de distancia $d$ y un número $k \in \mathbb{R}^{+}$, la versión de decisión pregunta:
+
+\[
+\text{¿Existe un ciclo hamiltoniano } \pi \text{ tal que } L(\pi) \leq k\text{?}
+\]
+
+Esta versión es \textbf{NP-completa}, lo que significa que, aunque no se conoce un algoritmo polinomial para resolver todos los casos, si alguien nos proporciona una ruta candidata, podemos verificar en tiempo polinomial si cumple la condición $L(\pi) \leq k$.  
+
+\paragraph{Versión de Optimización}
+La versión de optimización pregunta:
+
+\[
+\text{Encontrar } \pi^* = \arg\min_{\pi \in S_n} L(\pi)
+\]
+
+donde $S_n$ es el conjunto de todas las permutaciones de las $n$ ciudades. Esta es la versión clásica del problema y es más difícil que la de decisión, clasificándose como \textbf{NP-difícil}, ya que no solo requiere decidir si existe un ciclo con cierta longitud, sino que también precisa encontrar la longitud mínima y la ruta correspondiente.  
+Dada una solución candidata $\pi$, para verificar si es óptima se necesitaría comparar con todas las permutaciones posibles de ciudades, lo que implica un espacio de búsqueda de tamaño $n!$. Por ello, la versión de optimización no pertenece a NP y es inherentemente más difícil que la versión de decisión.
+
+\paragraph{Relación entre ambas versiones}  
+Resolver eficientemente la versión de optimización permite responder trivialmente a la versión de decisión, ya que con la solución óptima se puede verificar cualquier umbral $k$ en tiempo polinomial; empero, la solución al problema de decisión no proporciona información sobre la ruta óptima, evidenciando, de esta forma, que la versión de optimización es inherentemente más compleja \cite{Papadimitriou1998}.
+
+En este proyecto nos enfocamos en la versión de optimización del TSP, ya que nuestro objetivo es encontrar rutas lo más cortas posibles y no solo verificar si existen rutas por debajo de un umbral.
+
+\subsection{La heurística}
+
+Dada la dificultad computacional del TSP y la imposibilidad de encontrar soluciones exactas en tiempos razonables para un número grande de ciudades, las metaheurísticas basadas en búsqueda local constituyen una alternativa eficaz.  
+Una de las heurísticas más simples e intuitivas consiste en tomar una solución aleatoria e ir explorando sus vecinos; si un vecino es mejor, se toma como la nueva solución, repitiendo, de esta forma, el proceso hasta no encontrar un vecino mejor. Esta heurística, aunque efectiva, tiene el defecto de que, al solo aceptar mejoras, puede quedar atrapada en un mínimo local que podría estar muy alejado del óptimo global, y es por ello que se requiere una heurística más sofisticada.
+
+\subsubsection{Recocido Simulado (Simulated Annealing, SA)}
+
+Desde la antigüedad, el ser humano desarrolló el manejo de metales, en particular la elaboración de espadas, las cuales se hacían calentando el material al rojo vivo para darle forma, aunque esto resultaba en una espada quebradiza. Con el tiempo se descubrió que, si la espada era enfriada y calentada nuevamente, adquiría mejor resistencia y flexibilidad, lo que la hacía realmente efectiva, pues este proceso minimiza los defectos cristalinos del metal. El \textbf{Recocido Simulado (Simulated Annealing, SA)} se inspira en este proceso físico. Análogamente, en optimización combinatoria, SA permite escapar de mínimos locales mediante la aceptación ocasional de soluciones peores, controlada por una temperatura $T$ que decrece progresivamente. Podemos ver esto como volver a calentar la solución para así escapar de valles y llegar a mejores estados.
+
+Sea $S$ el espacio de soluciones y $f: S \rightarrow \mathbb{R}$ una función de costo a minimizar. Partiendo de una solución inicial $s_0 \in S$, el algoritmo genera un vecino aleatorio $s' \in N(s)$ y acepta la transición $s \rightarrow s'$ según la probabilidad de Metropolis:
+
+\[
+P(\text{ACEPTAR } s') = 
+\begin{cases}
+1, & \text{SI } f(s') \leq f(s)\\
+\exp\Big(-\frac{f(s') - f(s)}{T}\Big), & \text{SI } f(s') > f(s)
+\end{cases}
+\]
+
+donde $T > 0$ es la temperatura actual, que se reduce típicamente como $T \gets \alpha T$ con $0 < \alpha < 1$ hasta alcanzar un valor mínimo $T_{\min}$.
+
+\begin{algorithm}[H]
+\caption{RECOCIDO SIMULADO}
+\begin{algorithmic}[1]
+\STATE \textbf{ENTRADA:} solución inicial $s_0$, temperatura inicial $T_0$, temperatura mínima $T_{\min}$, factor de enfriamiento $\alpha$, iteraciones por temperatura $L$
+\STATE \textbf{SALIDA:} mejor solución $s^*$
+\STATE $s \gets s_0$, $s^* \gets s_0$, $T \gets T_0$
+\WHILE{$T > T_{\min}$}
+    \FOR{$i = 1$ \TO $L$}
+        \STATE $s' \gets$ vecinoAleatorio($s$)
+        \STATE $\Delta f \gets f(s') - f(s)$
+        \IF{$\Delta f \leq 0$ \OR $\text{rand()} < \exp(-\Delta f / T)$}
+            \STATE $s \gets s'$
+        \ENDIF
+        \IF{$f(s) < f(s^*)$}
+            \STATE $s^* \gets s$
+        \ENDIF
+    \ENDFOR
+    \STATE $T \gets \alpha \cdot T$
+\ENDWHILE
+\STATE \RETURN $s^*$
+\end{algorithmic}
+\end{algorithm}
+
+Este enfoque permite explorar eficientemente el espacio de soluciones, evitando quedar atrapado en mínimos locales, aunque su naturaleza estocástica introduce variabilidad en los resultados y requiere la generación de números aleatorios para aceptar soluciones peores.
+
+\subsubsection{Aceptación por Umbrales (Threshold Acceptance, TA)}
+
+Motivados por la necesidad de reducir la aleatoriedad y simplificar la implementación del recocido simulado, surge la heurística de \textbf{Aceptación por Umbrales (Threshold Acceptance, TA)}. Esta metaheurística transforma el criterio probabilístico de SA en un criterio determinista basado en un umbral $T > 0$, que decrece progresivamente hasta un valor mínimo $T_{\min}$.
+
+Formalmente, dado un vecino $s' \in N(s)$, se acepta la transición $s \rightarrow s'$ si:
+
+\[
+f(s') \leq f(s) + T
+\]
+
+lo que garantiza una exploración controlada del espacio de soluciones y facilita la aceptación inicial de soluciones subóptimas para luego concentrarse en la explotación de los óptimos locales.
+
+\begin{algorithm}[H]
+\caption{ACEPTACIÓN POR UMBRALES}
+\begin{algorithmic}[1]
+\STATE \textbf{ENTRADA:} solución inicial $s_0$, umbral inicial $T_0$, umbral mínimo $T_{\min}$, factor de reducción $\alpha$, iteraciones por umbral $L$
+\STATE \textbf{SALIDA:} mejor solución $s^*$
+\STATE $s \gets s_0$, $s^* \gets s_0$, $T \gets T_0$
+\WHILE{$T > T_{\min}$}
+    \FOR{$i = 1$ \TO $L$}
+        \STATE $s' \gets$ vecinoAleatorio($s$)
+        \IF{$f(s') \leq f(s) + T$}
+            \STATE $s \gets s'$
+        \ENDIF
+        \IF{$f(s) < f(s^*)$}
+            \STATE $s^* \gets s$
+        \ENDIF
+    \ENDFOR
+    \STATE $T \gets \alpha \cdot T$
+\ENDWHILE
+\STATE \RETURN $s^*$
+\end{algorithmic}
+\end{algorithm}
+
+De este modo, TA combina la capacidad de escape de mínimos locales del recocido simulado con un control determinista de aceptación, resultando en una metaheurística eficiente y estable, particularmente adecuada para la versión de optimización del TSP.
+
+\section{Objetivos}
+Implementar la heurística de Aceptación por Umbrales (Threshold Acceptance) para el Problema del Viajante (TSP) con el objetivo de encontrar soluciones de alta calidad, es decir, rutas cuya longitud sea lo más cercana posible al óptimo, explorando eficientemente el espacio de soluciones y evitando quedar atrapado en mínimos locales, sin que el proceso de búsqueda sea computacionalmente demasiado costoso.
+
+
+\section{Metodología}
+
+En este capítulo se describe la metodología seguida para implementar la heurística de \textbf{Aceptación por Umbrales (Threshold Acceptance, TA)} aplicada al Problema del Agente Viajero (TSP). Se detallan los fundamentos teóricos, la representación de las soluciones, la generación de vecinos, la optimización computacional y la determinación de parámetros críticos del algoritmo.
+
+\subsection{Representación de la gráfica y la instancia}
+
+Cada instancia de TSP se define mediante un subconjunto de ciudades $S \subset V$ en un mapa, representadas por una gráfica ponderada $G=(V,E)$:
+\begin{itemize}
+    \item $E \subset V \times V$ indica las conexiones existentes entre ciudades.
+    \item $w: E \rightarrow \mathbb{R}^+$ asigna a cada arista su distancia.
+\end{itemize}
+
+Para facilitar la optimización, se construye una \textbf{gráfica completa} $G_S = (V_S, E_S)$ donde $V_S = S$ y $E_S = \{(u,v) \mid u,v \in S, u \neq v\}$, y se define la función de peso aumentada $w_S$:
+
+\[
+w_S(u,v) =
+\begin{cases}
+w(u,v), & \text{si } (u,v) \in E\\
+d(u,v) \cdot \max d(S), & \text{en otro caso}
+\end{cases}
+\]
+
+donde $d(u,v)$ es la distancia natural entre las ciudades $u$ y $v$, y $\max d(S)$ es la distancia máxima entre pares de ciudades conectadas. Esto penaliza la selección de aristas que no existen en la gráfica original, incentivando soluciones factibles.
+
+\subsection{Representación de las soluciones}
+
+Cada solución se representa como una \textbf{permutación} de los elementos de $S$, $P = v_{\rho(1)}, \dots, v_{\rho(k)}$:
+
+\begin{itemize}
+    \item Una solución es \textbf{factible} si todas sus aristas consecutivas existen en $E$.
+    \item Una solución es \textbf{no factible} si al menos una arista consecutiva no existe en $E$.
+\end{itemize}
+
+\subsection{Función de costo}
+
+La función de costo $f(P)$ evalúa la calidad de cada solución y se normaliza para que todas las soluciones factibles tengan valores entre 0 y 1:
+
+\[
+f(P) = \frac{\sum_{i=2}^{k} w_S(v_{\rho(i-1)}, v_{\rho(i)})}{N(S)}
+\]
+
+donde $N(S)$ es la suma de las $|S|-1$ aristas más pesadas de $S$. 
+Para soluciones factibles, todas las aristas de la permutación existen en la gráfica original $E$, por lo que la suma de pesos $\sum w_S$ nunca supera $N(S)$ y $f(P) \le 1$.  
+En cambio, si una solución incluye aristas que no existen en $E$, estas se reemplazan por su peso aumentado $d(u,v) \cdot \max d(S)$, que es considerablemente mayor. Al normalizar por $N(S)$, esto produce automáticamente que $f(P) > 1$, penalizando la solución.  
+
+De esta manera, la función de costo normalizada favorece soluciones factibles sin necesidad de verificarlas explícitamente, asegurando que la heurística de aceptación por umbrales explore principalmente soluciones válidas y disminuya la probabilidad de seleccionar soluciones no factibles.
+
+\subsection{Generación de vecinos}
+
+Dos soluciones son vecinas si difieren únicamente en la posición de dos elementos. La generación de vecinos se realiza aleatoriamente con distribución uniforme, asegurando que la búsqueda no sea sesgada. Esta estrategia permite recorrer eficientemente el espacio de soluciones y explorar múltiples regiones del mismo.
+
+\subsection{Algoritmo de Aceptación por Umbrales}
+
+La heurística acepta un vecino $s'$ si:
+
+\[
+f(s') \leq f(s) + T
+\]
+
+donde $T$ es el umbral actual. El valor de $T$ decrece paulatinamente hasta un valor mínimo $\varepsilon$. El algoritmo principal se organiza en \textbf{lotes} de soluciones aceptadas, de manera que la temperatura se reduce solo cuando se ha alcanzado el equilibrio térmico en el lote.
+
+\begin{algorithm}[H]
+\caption{ACEPTACIÓN POR UMBRALES}
+\begin{algorithmic}[1]
+\STATE \textbf{ENTRADA:} solución inicial $s$, umbral inicial $T$, umbral mínimo $\varepsilon$, factor de enfriamiento $\phi$, tamaño de lote $L$
+\STATE \textbf{SALIDA:} mejor solución $s^*$
+\WHILE{$T > \varepsilon$}
+    \STATE $p \gets 0$, $q \gets \infty$
+    \WHILE{$p \leq q$} 
+        \STATE $q \gets p$
+        \STATE $(p,s) \gets \text{CALCULALOTE}(T,s)$
+    \ENDWHILE
+    \STATE $T \gets \phi \cdot T$
+\ENDWHILE
+\STATE \RETURN $s^*$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Cálculo de un lote}
+
+\begin{algorithm}[H]
+\caption{CALCULALOTE(T, s)}
+\begin{algorithmic}[1]
+\STATE \textbf{ENTRADA:} Temperatura $T$, solución $s$, tamaño de lote $L$
+\STATE \textbf{SALIDA:} promedio $r/L$ de soluciones aceptadas, última solución $s$
+\STATE $c \gets 0$, $r \gets 0$
+\WHILE{$c < L$}
+    \STATE $s' \gets$ vecinoAleatorio($s$)
+    \IF{$f(s') \leq f(s) + T$}
+        \STATE $s \gets s'$
+        \STATE $c \gets c + 1$
+        \STATE $r \gets r + f(s')$
+    \ENDIF
+\ENDWHILE
+\STATE \RETURN $(r/L, s)$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Determinación de la temperatura inicial}
+
+La temperatura inicial $T_0$ se selecciona mediante búsqueda binaria para que acepte un porcentaje deseado $P$ de soluciones vecinas al inicio, en este caso usamos $0.8$ pues fue la que mejor resultados dio de manera experimental. Se utilizan los procedimientos:
+
+\begin{itemize}
+    \item \textbf{PORCENTAJEACEPTADOS(s, T):} calcula la proporción de vecinos aceptados.  
+    \item \textbf{BUSQUEDABINARIA(s, T1, T2, P):} ajusta $T$ para aproximar $P$ dentro de una tolerancia $\varepsilon_P$.
+\end{itemize}
+
+Esto asegura que la heurística inicie con un umbral suficientemente alto para escapar de mínimos locales, pero sin generar un costo computacional excesivo.
+
+\subsection{Consideraciones finales}
+
+\begin{itemize}
+    \item Los procedimientos de generación de vecinos son aleatorios con distribución uniforme, garantizando búsqueda no sesgada.  
+    \item Se controla la semilla del generador de números aleatorios para permitir resultados reproducibles y paralelización.  
+    \item Los parámetros libres ($L$, $\phi$, $\varepsilon$, semilla) se ajustan mediante experimentación computacional para equilibrar calidad de la solución y eficiencia.
+\end{itemize}
+
+
+La metodología seguida en este trabajo se centra en la implementación de la heurística de \textbf{Aceptación por Umbrales (Threshold Acceptance, TA)} para el Problema del Viajante (TSP). El objetivo es garantizar soluciones de alta calidad sin que el costo computacional sea excesivo.
+
+\subsection{Representación de la solución}
+
+Cada solución del TSP se representa como una \textbf{permutación de las ciudades}.  
+\begin{itemize}
+    \item Una ciudad se representa por su índice en la lista de todas las ciudades de la instancia.
+    \item La función de costo $f(s)$ calcula la longitud total de la ruta correspondiente a la permutación $s$.
+    \item Esta representación permite generar vecinos mediante operaciones simples como el intercambio de posiciones entre dos ciudades (\textit{swap}).
+\end{itemize}
+
+\subsection{Generación de vecinos}
+
+La exploración del espacio de soluciones se realiza mediante la generación de vecinos de la solución actual.  
+\begin{itemize}
+    \item Se considera un vecino como una permutación que difiere de la solución actual en la posición de dos ciudades.
+    \item Esta estrategia es sencilla y rápida de calcular, y permite recorrer el espacio de soluciones de manera eficiente.
+    \item Para garantizar diversidad en la búsqueda, los vecinos se eligen de forma aleatoria en cada iteración.
+\end{itemize}
+
+
+
+\subsection{Parámetros del algoritmo}
+
+Los parámetros del algoritmo fueron seleccionados de manera experimental para balancear calidad de la solución y costo computacional:
+\begin{itemize}
+    \item $T_0$: umbral inicial, controla la amplitud de aceptación al inicio.
+    \item $T_{\min}$: umbral mínimo, determina el fin del algoritmo.
+    \item $\alpha$: factor de reducción, regula la velocidad de decremento del umbral.
+    \item $L$: número máximo de iteraciones por umbral.
+\end{itemize}
+
+\subsection{Implementación}
+
+La heurística de Aceptación por Umbrales se implementó utilizando el lenguaje \textbf{Julia}. Esta elección se justifica por varias razones:
+
+\begin{itemize}
+    \item \textbf{Alto rendimiento computacional:} Julia permite ejecutar operaciones numéricas a velocidades comparables con lenguajes compilados como C o Fortran gracias a su compilación Just-in-Time (JIT), lo que es fundamental para evaluar rápidamente soluciones y vecinos en el TSP.
+    \item \textbf{Sintaxis expresiva y cercana a matemáticas:} facilita la implementación de algoritmos de optimización y la manipulación de estructuras de datos como matrices y vectores, pues su sintaxis es muy parecida a pseudocódigo.
+    \item \textbf{Facilidad de modularización y manejo de paquetes:} Julia permite estructurar el proyecto en módulos separados, importarlos y reutilizarlos de manera eficiente.
+    \item \textbf{Compatibilidad con bases de datos y archivos TSP:} Julia cuenta con paquetes que permiten leer archivos de entrada, conectarse a bases de datos SQLite y manipular datos de manera eficiente.
+    \item \textbf{Macros y anotaciones como \texttt{@inline}:} permiten indicar al compilador que funciones críticas se deben insertar directamente, reduciendo la sobrecarga de llamadas y aumentando el rendimiento en bucles intensivos.  
+    \item \textbf{Soporte para paralelización y multithreading:} facilita aprovechar múltiples núcleos para explorar varias semillas o vecinos simultáneamente.
+\end{itemize}
+
+\subsubsection{Estructura del proyecto}
+
+El proyecto se organizó de manera modular para mantener claridad, reusabilidad y facilidad de mantenimiento. La estructura de carpetas es la siguiente:
+
+\begin{verbatim}
+\begin{verbatim}
+Project/
+|-- Makefile
+|-- Manifest.toml
+|-- Project.toml
+|-- README.md
+|-- run.jl
+|-- src/
+    |-- bd/
+        |-- tsp.db
+        |-- tsp.sql
+    |-- inputs/
+        |-- input-150.tsp
+        |-- input-40.tsp
+        |-- input-50.tsp
+    |-- main/
+        |-- database_reader.jl
+        |-- estructuras.jl
+        |-- main.jl
+        |-- recocido_simulado.jl
+        |-- temperatura.jl
+        |-- utilidades.jl
+\end{verbatim}
+
+\paragraph{Descripción de los módulos principales:}
+
+\begin{itemize}
+    \item \textbf{src/bd}: contiene la base de datos SQLite (`tsp.db`) y los scripts SQL (`tsp.sql`) para generar y consultar instancias de TSP.  
+    \item \textbf{src/inputs}: incluye archivos de entrada con instancias TSP en formato estándar (`.tsp`).  
+    \item \textbf{src/main/database\_reader.jl}: módulo encargado de leer la base de datos y convertir los datos a estructuras de TSP utilizables.  
+    \item \textbf{src/main/estructuras.jl}: define las estructuras de datos necesarias para representar soluciones, permutaciones y vecinos.  
+    \item \textbf{src/main/main.jl}: archivo principal que coordina la ejecución del algoritmo y la integración de los módulos.  
+    \item \textbf{src/main/recocido\_simulado.jl}: implementa el algoritmo de Recocido Simulado y su variante de Aceptación por Umbrales.  
+    \item \textbf{src/main/temperatura.jl}: contiene la lógica para la determinación de la temperatura inicial y el ajuste de umbrales.  
+    \item \textbf{src/main/utilidades.jl}: funciones auxiliares utilizadas por los distintos módulos, como cálculo de distancia natural y generación de vecinos.
+\end{itemize}
+
+Esta organización permite ejecutar distintas instancias de TSP de manera modular, realizar ajustes en los parámetros del algoritmo, y facilita futuras mejoras o integración con otras heurísticas.
+
+
+\subsection{Consideraciones de eficiencia}
+
+Para asegurar que la búsqueda no sea computacionalmente muy costosa:
+\begin{itemize}
+    \item Se limita el número de iteraciones por umbral ($L$) y se reduce progresivamente el umbral ($\alpha$) para enfocar la búsqueda.
+    \item La generación de vecinos se realiza de forma aleatoria y simple (\textit{swap}) para minimizar el tiempo de cómputo por iteración.
+    \item La mejor solución encontrada se actualiza únicamente si es mejor que la anterior, evitando cálculos innecesarios.
+\end{itemize}
+
+\section{Optimización del Algoritmo}
+\subsection{Paralelización y uso multinúcleo}
+
+El algoritmo se adaptó para aprovechar múltiples núcleos del procesador:
+
+\begin{itemize}
+    \item Se ejecutan varias corridas del algoritmo en paralelo, cada una con una semilla distinta, para así explorar diferentes regiones del espacio de soluciones.  
+    \item Esta paralelización se realiza sobre bloques independientes de soluciones, asegurando que no haya conflictos entre hilos.  
+    \item La paralelizacion no comienza hasta que las estructuras de datos ya estan construidas, para, de esta forma, evitar repetir cálculos innecesarios para construirlas
+\end{itemize}
+
+\subsection{Manejo eficiente de soluciones no factibles}
+
+Para evitar cálculos innecesarios de la función de costo:
+
+\begin{itemize}
+    \item Las penalizaciones para las aristas no factibles se hacen desde la construcción del tsp a partir de la base de datos.  
+    \item Esto evita repetir evaluaciones de soluciones que sabemos de antemano que no serán aceptadas, reduciendo significativamente la carga computacional.
+\end{itemize}
+
+\subsection{Cálculo incremental de vecinos: \texttt{calcula\_swap}}
+
+En lugar de recalcular la función de costo completa para cada vecino:
+
+\begin{itemize}
+    \item Se implementó la función \texttt{calcula\_swap}, que calcula únicamente la diferencia de costo producida por el intercambio de dos ciudades.  
+    \item Solo se crea el vecino si su costo es competitivo, evitando almacenar y evaluar soluciones innecesarias.  
+    \item Esta estrategia permite que cada evaluación tenga complejidad constante $O(1)$, mejorando drásticamente el tiempo de ejecución en comparación con la función de costo completa la cual seria $O(n)$.
+\end{itemize}
+
+\section{Barridos para Mejora Local}
+
+Para mejorar las soluciones obtenidas por la heurística de Aceptación por Umbrales, se implementaron técnicas de \textbf{búsqueda local} conocidas como \textit{barridos}. Estas técnicas permiten refinar una solución inicial explorando sistemáticamente soluciones vecinas y aplicando cambios que reducen la función de costo.
+
+\subsection{Barrido Swap}
+
+El barrido Swap consiste en intercambiar sistemáticamente pares de ciudades en la solución actual, es decir, visitar un vecino y evaluar la mejora en la función de costo. Esta técnica es simple, rápida y permite ajustes generales en la ruta, pero los resultados obtenidos inicialmente eran limitados y, en algunos casos, insuficientes para lograr mejoras significativas en rutas complejas.
+
+\subsection{El método 2-Opt}
+
+El \textbf{2-Opt} es un operador de optimización local clásico para el TSP, introducido por Croes en 1958 \cite{Croes1958}. Consiste en seleccionar dos aristas de la ruta y reemplazarlas invirtiendo el segmento intermedio, eliminando cruces y reduciendo la longitud total de la ruta. Formalmente, dado un ciclo:
+
+\[
+v_1 \rightarrow \dots \rightarrow v_i \rightarrow v_{i+1} \dots v_j \rightarrow v_{j+1} \dots \rightarrow v_n \rightarrow v_1,
+\]
+
+el movimiento 2-Opt genera la nueva ruta:
+
+\[
+v_1 \rightarrow \dots \rightarrow v_i \rightarrow v_j \dots v_{i+1} \rightarrow v_{j+1} \dots \rightarrow v_n \rightarrow v_1.
+\]
+
+Este procedimiento es efectivo porque cualquier cruce entre aristas incrementa la distancia total de la ruta; invertir segmentos para eliminar cruces tiende a reducir significativamente el costo \cite{Lin1973, Johnson1990}.
+
+\subsection{Barrido 2-Opt}
+
+El barrido 2-Opt aplica el operador 2-Opt de manera exhaustiva sobre la solución. Los resultados eran muy buenos, a veces incluso excesivamente optimizados, lo que generaba soluciones con alta reducción de costo, pero esta reducción de costo tan abrupta derivada de quitar cruces muy graves de un solo golpe podría generar cierta desconfianza sobre la robustez del algoritmo. Además, el barrido 2-Opt es muy efectivo para corregir soluciones que contengan aristas no factibles, haciendo factibles muchas semillas que originalmente no lo eran \cite{Rego2011, Bentley1992}.
+
+\subsection{Estrategia combinada}
+
+Para equilibrar eficacia y confiabilidad de las soluciones finales, se adoptó la estrategia de:
+
+\begin{enumerate}
+    \item Aplicar primero el barrido \textbf{Swap} para lograr mejoras iniciales rápidas y generales \cite{Dueck1990}.
+    \item Aplicar posteriormente el barrido \textbf{2-Opt} para eliminar cruces y refinar la ruta sin sobre-optimizar de forma poco representativa \cite{Croes1958, Lin1973}.
+\end{enumerate}
+
+Esta combinación permite:
+
+\begin{itemize}
+    \item Mejorar la solución de manera eficiente desde el punto de vista computacional.
+    \item Mantener soluciones finales de alta calidad, confiables y cercanas al óptimo.
+    \item Integrar los barridos de forma modular con la heurística de Aceptación por Umbrales.
+\end{itemize}
+
+
+
+\section{Resultados}
+\subsection{Pruebas iniciales y verificación de soluciones}
+
+Para evaluar la heurística de Aceptación por Umbrales y los barridos combinados, se realizaron pruebas con instancias de 40 ciudades. Se ejecutaron \textbf{50 corridas independientes}, cada una utilizando una semilla distinta para el generador de números aleatorios.
+
+Se observó que la mayoría de las corridas tendieron a converger hacia una misma solución. Dada la naturaleza NP-difícil del TSP, no es posible garantizar que esta sea la solución óptima global; sin embargo, la alta coincidencia entre corridas sugiere que esta ruta es probablemente el óptimo global para esta instancia, por lo que se decidió parar aquí con la prueba de esta instancia.
+
+\subsubsection{Registro de semillas y resultados}
+
+A continuación se presenta una tabla donde se documentan las mejores 3 semillas, si bien hay mas semillas que llegaron a la misma solución, estas son las primeras 3:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Semilla} & \textbf{Salida (costo normalizado / permutación)} \\
+\hline
+48  &  0.3034411950098791\\
+41  &  0.3034413903649972\\
+2  &  0.3034414507952485\\
+\hline
+\end{tabular}
+\caption{Resultados de 50 corridas para 40 ciudades con distintas semillas.}
+\label{tab:pruebas40}
+\end{table}
+]
+
+\subsection{Pruebas para la instancia de 150 ciudades}
+
+Posteriormente, se realizaron pruebas sobre una instancia más grande, con \textbf{150 ciudades}. Para esta instancia se ejecutaron 15 mil corridas independientes, cada una utilizando una semilla distinta.  
+
+\subsubsection{Registro de semillas y resultados}
+
+Se presenta una tabla para documentar las 5 mejores semillas utilizadas y la salida final de cada corrida. Al igual que en la instancia de 40 ciudades, en la columna ``Salida'' se puede registrar el costo normalizado de la ruta o la permutación final de ciudades.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Semilla} & \textbf{Salida (costo normalizado / permutación)} & \textbf{Solo con 2Opt}\\
+\hline
+58935 & 0.1370595151543633  & 0.13873647008263937\\
+571  &  0.14052681988068066 & 0.14969197466282938\\
+711  & 0.14086432506302488 & 0.1454271851891711\\
+
+\hline
+\end{tabular}
+\caption{Resultados de 50 corridas para 150 ciudades con distintas semillas.}
+\label{tab:pruebas150}
+\end{table}
+
+Donde podemos ver que hacer solo 2opt no siempre es optimo, pero si nos dio los mejores resultados
+
+
+%------------ Bibliografía ----------------
+\printbibliography
+
+\end{document}
