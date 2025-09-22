@@ -11,9 +11,14 @@ Genera una permutación vecina intercambiando dos elementos aleatorios.
 function vecino_aleatorio(permutacion::Vector{Int})
     nueva_perm = copy(permutacion)
     n = length(nueva_perm)
+    
+    # Seleccionar dos índices diferentes aleatoriamente
     s, t = sample(1:n, 2, replace=false)
+    
+    # Intercambiar elementos
     nueva_perm[s], nueva_perm[t] = nueva_perm[t], nueva_perm[s]
-    return nueva_perm
+    
+    return s, t
 end
 
 """

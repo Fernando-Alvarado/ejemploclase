@@ -62,7 +62,7 @@ function ejecutar_semilla(semilla::Int, tsp::TSP, solucion_base::Vector{Int}, ar
     
     solucion_inicial = shuffle(copy(solucion_base))
     
-    mejor_solucion, _ = aceptacion_por_umbrales(
+    mejor_solucion, costo_normalizado = aceptacion_por_umbrales(
         tsp, 
         solucion_inicial,
         L=8000,
@@ -70,10 +70,9 @@ function ejecutar_semilla(semilla::Int, tsp::TSP, solucion_base::Vector{Int}, ar
         ε=0.001,
         max_iteraciones=100000
     )
-    mejor_solucion = barrido(tsp, mejor_solucion)
+    mejor_solucion, costo_normalizado = barrido(tsp, mejor_solucion, costo_normalizado)
     
     mejor_path_ids = permutacion_a_ids(tsp, mejor_solucion)
-    costo_normalizado = funcion_costo(tsp, mejor_solucion)
     factible = es_factible(tsp, mejor_solucion) ? "YES" : "NO"
     
     # Escribir a archivo específico de la semilla
