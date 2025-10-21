@@ -70,7 +70,7 @@ function ejecutar_semilla(semilla::Int, tsp::TSP, solucion_base::Vector{Int}, ar
         ε=0.001,
         max_iteraciones=100000
     )
-    #mejor_solucion, costo_normalizado = barrido(tsp, mejor_solucion, costo_normalizado)
+    mejor_solucion, costo_normalizado = barrido(tsp, mejor_solucion, costo_normalizado)
     mejor_solucion, costo_normalizado = barrido_2Opt(tsp, mejor_solucion, costo_normalizado)
     
     mejor_path_ids = permutacion_a_ids(tsp, mejor_solucion)

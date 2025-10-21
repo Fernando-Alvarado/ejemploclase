@@ -25,7 +25,7 @@ function calcula_lote(tsp::TSP, L::Int, T::Float64, s::Vector{Int}, mejor_costo:
         if costo_prima <= mejor + T
             s_actual[s], s_actual[t] = s_actual[t], s_actual[s]
             mejor = costo_prima
-            #println(@sprintf("Costo: , %.11f", mejor))
+            println(@sprintf("Costo: , %.11f", mejor))
             c += 1
             r += costo_prima
         end
@@ -123,7 +123,7 @@ function barrido(tsp::TSP, solucion::Vector{Int}, mejor::Float64 )
                 if costo_vecino < mejor_costo
                     mejor_solucion[i], mejor_solucion[j] = mejor_solucion[j], mejor_solucion[i]
                     mejor_costo = costo_vecino
-                    #println(@sprintf("Nuevo mejor costo normalizado: %.6f (swap %d-%d)", mejor_costo, i, j))
+                    println(@sprintf("Nuevo mejor costo normalizado: %.11f (swap %d-%d)", mejor_costo, i, j))
                     mejorado = true
                 end
             end
@@ -150,7 +150,7 @@ function barrido_2Opt(tsp::TSP, solucion::Vector{Int}, costo::Float64)
                 if delta < 0
                     reverse!(mejor_solucion, i+1, j)
                     mejor_costo += delta
-                    #println(@sprintf("Costo: %.11f", mejor_costo))
+                    println(@sprintf("Costo: %.11f", mejor_costo))
                     mejorado = true
                 end
             end
