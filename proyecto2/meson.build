@@ -12,11 +12,15 @@ inc = include_directories('include')
 srcs = files(
   'src/main.cpp',
   'src/graph.cpp',
-  'src/graph_reader.cpp'
+  'src/graph_reader.cpp',
+  'src/pso.cpp'
 )
+
+omp_dep = dependency('openmp', required : true)
 
 exe = executable('kmst', srcs,
   include_directories : inc,
+  dependencies: [omp_dep],
   install : true
 )
 
