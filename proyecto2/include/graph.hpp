@@ -6,6 +6,8 @@
 #include <string>
 #include <utility>
 #include <unordered_map>
+#include <queue>
+
 
 /**
  * Clase Graph
@@ -126,7 +128,76 @@ public:
      * @param vertex_subset Vector de IDs internos de vértices a incluir.
      * @return par (string con aristas, peso total del MST).
      */
-    std::pair<std::string, double> prim_subset(const std::vector<int>& vertex_subset) const;
+        // Versión rápida: solo retorna peso (usada en PSO)
+    inline double prim_subset(const std::vector<int>& vertex_subset) const {
+    const double INF = std::numeric_limits<double>::infinity();
+    if (vertex_subset.empty())
+        return INF;
+
+    const int k = vertex_subset.size();
+    double total = 0.0;
+
+    std::vector<char> in_mst(k, 0);
+    std::vector<double> min_edge(k, INF);
+
+    // Lineal para k pequeños — más estable y rápido
+    if (k <= 64) {
+        min_edge[0] = 0.0;
+        for (int i = 0; i < k; ++i) {
+            int u_local = -1;
+            double best = INF;
+            for (int v = 0; v < k; ++v)
+                if (!in_mst[v] && min_edge[v] < best)
+                    best = min_edge[v], u_local = v;
+
+            if (u_local == -1) break;
+
+            in_mst[u_local] = 1;
+            total += best;
+
+            int u_global = vertex_subset[u_local];
+            for (int v_local = 0; v_local < k; ++v_local) {
+                if (!in_mst[v_local]) {
+                    int v_global = vertex_subset[v_local];
+                    double w = adj[u_global][v_global];
+                    if (w < min_edge[v_local])
+                        min_edge[v_local] = w;
+                }
+            }
+        }
+        return total;
+    }
+
+    // Heap solo para k grandes
+    using Edge = std::pair<double, int>;
+    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> pq;
+    min_edge[0] = 0.0;
+    pq.push({0.0, 0});
+    int added = 0;
+
+    while (!pq.empty() && added < k) {
+        auto [cost, u_local] = pq.top();
+        pq.pop();
+
+        if (in_mst[u_local]) continue;
+        in_mst[u_local] = 1;
+        total += cost;
+        added++;
+
+        int u_global = vertex_subset[u_local];
+        for (int v_local = 0; v_local < k; ++v_local)
+            if (!in_mst[v_local]) {
+                int v_global = vertex_subset[v_local];
+                double w = adj[u_global][v_global];
+                if (w < min_edge[v_local]) {
+                    min_edge[v_local] = w;
+                    pq.push({w, v_local});
+                }
+            }
+    }
+    return total;
+}
+
 
 };
 

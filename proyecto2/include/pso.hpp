@@ -142,8 +142,7 @@ private:
      * @param p Partícula a transicionar
      * @return Nueva posición (conjunto de k vértices)
      */
-    std::vector<int> transition(const Particle& p, double alpha_g_t, double alpha_p_t) const;
-
+    std::vector<int> transition(const Particle& p) const;
 
     /**
      * Calcula la diferencia entre dos conjuntos: a \ b

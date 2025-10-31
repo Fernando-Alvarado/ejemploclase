@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     const std::string input_path = argv[1];
     int k = std::atoi(argv[2]);
     int swarm_size = std::atoi(argv[3]);
-    const int iterations = 100000;
+    const int iterations = 10000;
 
     // --- Interpretar semillas ---
     std::vector<unsigned> seeds;
@@ -76,18 +76,20 @@ int main(int argc, char* argv[]) {
         double best_val = solver.best_value();
         std::vector<int> best_set = solver.best_set();
 
+        // ✅ normalizar antes de guardar
+        double normalized_val = best_val / g.getNormalizador();
+
         // Guardar resultado en archivo
         std::ofstream out("../kmst-" + std::to_string(seed) + ".mst");
         out << "# Resultados PSO - Semilla " << seed << "\n";
         out << "# Mejor conjunto (gbest): ";
         for (int v : best_set) out << "V" << v << " ";
-        out << "\n# Peso total: " << best_val << "\n";
+        out << "\n# Peso total normalizado: " << normalized_val << "\n";  // ✅ normalizado
         out.close();
 
-        #pragma omp critical
         {
             std::cout << "[Seed " << seed << "] terminado. Peso = "
-                      << best_val << " → guardado en kmst-" << seed << ".mst\n";
+                      << normalized_val << " → guardado en kmst-" << seed << ".mst\n";  // ✅ normalizado
             if (best_val < global_best_value) {
                 global_best_value = best_val;
                 global_best_seed = seed;
@@ -102,8 +104,8 @@ int main(int argc, char* argv[]) {
     std::cout << "Conjunto: { ";
     for (int v : global_best_set) std::cout << "V" << v << " ";
     std::cout << "}\n";
-    std::cout << "Peso total: " << global_best_value << "\n";
+    std::cout << "Peso total normalizado: " 
+              << global_best_value / g.getNormalizador() << "\n";  // ✅ normalizado
 
     return 0;
 }
-
