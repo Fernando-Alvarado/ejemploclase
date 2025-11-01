@@ -85,9 +85,6 @@ void Graph::print() const {
     }
 }
 
-// ============================================================================
-// OPTIMIZACIÓN 1: Prim con Priority Queue - Solo retorna peso (O(1) construcción string)
-// ============================================================================
 std::pair<std::string, double> Graph::prim(const std::string& start) const {
     const double INF = std::numeric_limits<double>::infinity();
 
@@ -97,7 +94,6 @@ std::pair<std::string, double> Graph::prim(const std::string& start) const {
         if (start_id == -1) start_id = 0;
     }
 
-    // Min-heap: (peso, vértice)
     using Edge = std::pair<double, int>;
     std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> pq;
 
@@ -119,7 +115,6 @@ std::pair<std::string, double> Graph::prim(const std::string& start) const {
         in_mst[u] = 1;
         total += cost;
 
-        // Actualizar vecinos
         const auto& row = adj[u];
         for (int v = 0; v < n; ++v) {
             double w = row[v];
@@ -131,100 +126,16 @@ std::pair<std::string, double> Graph::prim(const std::string& start) const {
         }
     }
 
-    return {"", total};  // String vacío, solo peso
+    return {"", total};  
 }
-
-// ============================================================================
-// OPTIMIZACIÓN 3: prim_subset - Solo retorna peso durante búsqueda
-// Versión sobrecargada para construir string solo cuando se necesita
-// ============================================================================
-
-
-
-// Versión completa: construye string (solo para resultado final)
-// std::pair<std::string, double> Graph::prim_subset(const std::vector<int>& vertex_subset) const {
-//     const double INF = std::numeric_limits<double>::infinity();
-    
-//     if (vertex_subset.empty())
-//         return {"", 0.0};
-
-//     int k = vertex_subset.size();
-    
-//     // Mapeo rápido: ID global -> índice local
-//     std::unordered_map<int, int> global_to_local;
-//     global_to_local.reserve(k);
-//     for (int i = 0; i < k; ++i)
-//         global_to_local[vertex_subset[i]] = i;
-
-//     // Min-heap
-//     using Edge = std::pair<double, int>;
-//     std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> pq;
-
-//     std::vector<char> in_mst(k, 0);
-//     std::vector<int> parent(k, -1);
-//     std::vector<double> min_edge(k, INF);
-
-//     min_edge[0] = 0.0;
-//     pq.push({0.0, 0});
-
-//     double total = 0.0;
-//     std::string result;
-//     result.reserve(k * 40);
-    
-//     char buffer[32];
-//     int added = 0;
-
-//     while (!pq.empty() && added < k) {
-//         auto [cost, u_local] = pq.top();
-//         pq.pop();
-
-//         if (in_mst[u_local]) continue;
-
-//         in_mst[u_local] = 1;
-//         total += cost;
-//         added++;
-
-//         if (parent[u_local] != -1) {
-//             int parent_global = vertex_subset[parent[u_local]];
-//             int u_global = vertex_subset[u_local];
-            
-//             result += id_to_vertex[parent_global];
-//             result += ',';
-//             result += id_to_vertex[u_global];
-//             result += ',';
-            
-//             auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), 
-//                                           adj[parent_global][u_global]);
-//             result.append(buffer, ptr - buffer);
-//             result += ';';
-//         }
-
-//         // Actualizar vecinos en el subconjunto
-//         int u_global = vertex_subset[u_local];
-//         for (int v_local = 0; v_local < k; ++v_local) {
-//             if (!in_mst[v_local]) {
-//                 int v_global = vertex_subset[v_local];
-//                 double w = adj[u_global][v_global];
-//                 if (w < min_edge[v_local]) {
-//                     min_edge[v_local] = w;
-//                     parent[v_local] = u_local;
-//                     pq.push({w, v_local});
-//                 }
-//             }
-//         }
-//     }
-
-//     return {result, total};
-// }
 
 Graph::Matrix Graph::floyd_warshall() {
     const double INF = std::numeric_limits<double>::infinity();
     Matrix dist = adj;
 
-    // OPTIMIZACIÓN 4: Reordenar loops para mejor cache locality
     for (int k = 0; k < n; ++k) {
         for (int i = 0; i < n; ++i) {
-            if (dist[i][k] < INF) {  // Early exit
+            if (dist[i][k] < INF) {  
                 for (int j = 0; j < n; ++j) {
                     if (dist[k][j] < INF) {
                         double new_dist = dist[i][k] + dist[k][j];
@@ -236,41 +147,38 @@ Graph::Matrix Graph::floyd_warshall() {
         }
     }
 
-    // Calcular diámetro
+
     diameter_ = 0.0;
     for (int i = 0; i < n; ++i)
-        for (int j = i + 1; j < n; ++j)  // Solo mitad superior (simétrico)
+        for (int j = i + 1; j < n; ++j)  
             if (dist[i][j] < INF && dist[i][j] > diameter_)
                 diameter_ = dist[i][j];
 
     return dist;
 }
 
-// OPTIMIZACIÓN 5: Evitar multiplicaciones redundantes
 void Graph::complete(int k) {
     const double INF = std::numeric_limits<double>::infinity();
     distances_ = floyd_warshall();
     
-    // Pre-calcular el factor común
     const double factor = diameter_ * k;
 
     for (int u = 0; u < n; ++u) {
-        for (int v = u + 1; v < n; ++v) {  // Solo mitad superior (simétrico)
+        for (int v = u + 1; v < n; ++v) { 
             if (adj[u][v] == INF) {
                 double new_weight = distances_[u][v] * factor;
                 adj[u][v] = new_weight;
-                adj[v][u] = new_weight;  // Mantener simetría
+                adj[v][u] = new_weight;  
             }
         }
     }
 }
 
-// OPTIMIZACIÓN 6: Single-pass con nth_element (O(n) promedio vs O(n log n))
 void Graph::calcula_Normalizador(int k) {
     const double INF = std::numeric_limits<double>::infinity();
     
     std::vector<double> pesos;
-    pesos.reserve((n * (n - 1)) / 2);  // Tamaño exacto para grafo no dirigido
+    pesos.reserve((n * (n - 1)) / 2); 
     
     for (int i = 0; i < n; ++i)
         for (int j = i + 1; j < n; ++j)
@@ -289,21 +197,93 @@ void Graph::calcula_Normalizador(int k) {
         return;
     }
     
-    // OPTIMIZACIÓN: nth_element es O(n) promedio vs sort O(n log n)
-    // Particiona para que los k-1 mayores estén al final
     std::nth_element(pesos.begin(), 
                      pesos.end() - limit, 
                      pesos.end());
-    
-    // Sumar los k-1 mayores
+
     double sum = 0.0;
-    for (int i = pesos.size() - limit; i < pesos.size(); ++i) {
+    for (size_t i = pesos.size() - limit; i < pesos.size(); ++i)
         sum += pesos[i];
-    }
     
-    // El máximo está garantizado en el último elemento después de nth_element
     std::cout << "Arista mas pesada original: " 
               << *std::max_element(pesos.end() - limit, pesos.end()) << "\n";
     
     normalizador_ = sum;
+}
+
+
+std::pair<std::vector<int>, double> Graph::prim_subset_full(const std::vector<int>& vertex_subset) const {
+    const double INF = std::numeric_limits<double>::infinity();
+    
+    if (vertex_subset.empty())
+        return {{}, 0.0};
+
+    int k = vertex_subset.size();
+    
+    using Edge = std::pair<double, int>;
+    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> pq;
+
+    std::vector<char> in_mst(k, 0);
+    std::vector<int> parent(k, -1);
+    std::vector<double> min_edge(k, INF);
+
+    min_edge[0] = 0.0;
+    pq.push({0.0, 0});
+
+    double total = 0.0;
+    int added = 0;
+
+    while (!pq.empty() && added < k) {
+        auto [cost, u_local] = pq.top();
+        pq.pop();
+
+        if (in_mst[u_local]) continue;
+
+        in_mst[u_local] = 1;
+        total += cost;
+        added++;
+
+        int u_global = vertex_subset[u_local];
+        for (int v_local = 0; v_local < k; ++v_local) {
+            if (!in_mst[v_local]) {
+                int v_global = vertex_subset[v_local];
+                double w = adj[u_global][v_global];
+                if (w < min_edge[v_local]) {
+                    min_edge[v_local] = w;
+                    parent[v_local] = u_local;
+                    pq.push({w, v_local});
+                }
+            }
+        }
+    }
+
+    return {parent, total};
+}
+
+std::string Graph::mst_to_string(const std::vector<int>& vertex_subset, 
+                                  const std::vector<int>& parent) const {
+    std::string result;
+    int k = vertex_subset.size();
+    result.reserve(k * 40);
+    
+    char buffer[32];
+    
+    for (int i = 0; i < k; ++i) {
+        if (parent[i] != -1) {
+            int parent_global = vertex_subset[parent[i]];
+            int child_global = vertex_subset[i];
+            
+            result += id_to_vertex[parent_global];
+            result += ',';
+            result += id_to_vertex[child_global];
+            result += ',';
+            
+            auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), 
+                                          adj[parent_global][child_global]);
+            result.append(buffer, ptr - buffer);
+            result += ';';
+        }
+    }
+    
+    return result;
 }

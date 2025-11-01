@@ -46,7 +46,6 @@ Graph GraphReader::from_stream(std::istream& input) {
                             ? content.substr(comma2 + 1)
                             : content.substr(comma2 + 1, next_v - comma2 - 1);
 
-        // limpiar
         auto trim = [](std::string &s) {
             s.erase(0, s.find_first_not_of(" \t"));
             s.erase(s.find_last_not_of(" \t") + 1);

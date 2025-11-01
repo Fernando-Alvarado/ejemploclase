@@ -13,7 +13,8 @@ srcs = files(
   'src/main.cpp',
   'src/graph.cpp',
   'src/graph_reader.cpp',
-  'src/pso.cpp'
+  'src/pso.cpp',
+  'src/graphy.cpp'
 )
 
 omp_dep = dependency('openmp', required : true)

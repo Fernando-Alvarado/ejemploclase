@@ -50,7 +50,7 @@ public:
         double best_value;               // f(pbest) = peso del MST
         double current_value;            // f(S) = peso del MST actual
 
-        Particle(int k = 0)
+        Particle()
             : current(), best(), 
               best_value(std::numeric_limits<double>::infinity()),
               current_value(std::numeric_limits<double>::infinity()) {}
@@ -126,6 +126,13 @@ public:
      * @return Peso total del k-MST óptimo encontrado
      */
     double best_value() const { return swarm_.gbest_value; }
+
+    /**
+     * Realiza una pasada de barrido (sweep) para mejorar la solución actual.
+     * Intenta intercambiar vértices dentro y fuera del conjunto actual
+     * para reducir el peso del MST.
+     */
+    void sweep() ;
 
 private:
     /**

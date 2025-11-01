@@ -130,73 +130,50 @@ public:
      */
         // Versión rápida: solo retorna peso (usada en PSO)
     inline double prim_subset(const std::vector<int>& vertex_subset) const {
-    const double INF = std::numeric_limits<double>::infinity();
-    if (vertex_subset.empty())
-        return INF;
+        const double INF = std::numeric_limits<double>::infinity();
+        if (vertex_subset.empty())
+            return INF;
 
-    const int k = vertex_subset.size();
-    double total = 0.0;
+        const int k = vertex_subset.size();
+        double total = 0.0;
 
-    std::vector<char> in_mst(k, 0);
-    std::vector<double> min_edge(k, INF);
+        std::vector<char> in_mst(k, 0);
+        std::vector<double> min_edge(k, INF);
 
-    // Lineal para k pequeños — más estable y rápido
-    if (k <= 64) {
-        min_edge[0] = 0.0;
-        for (int i = 0; i < k; ++i) {
-            int u_local = -1;
-            double best = INF;
-            for (int v = 0; v < k; ++v)
-                if (!in_mst[v] && min_edge[v] < best)
-                    best = min_edge[v], u_local = v;
+        // Lineal para k pequeños — más estable y rápido
+        if (k <= 64) {
+            min_edge[0] = 0.0;
+            for (int i = 0; i < k; ++i) {
+                int u_local = -1;
+                double best = INF;
+                for (int v = 0; v < k; ++v)
+                    if (!in_mst[v] && min_edge[v] < best)
+                        best = min_edge[v], u_local = v;
 
-            if (u_local == -1) break;
+                if (u_local == -1) break;
 
-            in_mst[u_local] = 1;
-            total += best;
+                in_mst[u_local] = 1;
+                total += best;
 
-            int u_global = vertex_subset[u_local];
-            for (int v_local = 0; v_local < k; ++v_local) {
-                if (!in_mst[v_local]) {
-                    int v_global = vertex_subset[v_local];
-                    double w = adj[u_global][v_global];
-                    if (w < min_edge[v_local])
-                        min_edge[v_local] = w;
+                int u_global = vertex_subset[u_local];
+                for (int v_local = 0; v_local < k; ++v_local) {
+                    if (!in_mst[v_local]) {
+                        int v_global = vertex_subset[v_local];
+                        double w = adj[u_global][v_global];
+                        if (w < min_edge[v_local])
+                            min_edge[v_local] = w;
+                    }
                 }
             }
+            return total;
         }
-        return total;
+        return std::numeric_limits<double>::infinity(); // Return inalcanzable pero el compilador no lo sabe asi que evita warning
+
     }
 
-    // Heap solo para k grandes
-    using Edge = std::pair<double, int>;
-    std::priority_queue<Edge, std::vector<Edge>, std::greater<Edge>> pq;
-    min_edge[0] = 0.0;
-    pq.push({0.0, 0});
-    int added = 0;
+    std::pair<std::vector<int>, double> prim_subset_full(const std::vector<int>& vertex_subset) const;
 
-    while (!pq.empty() && added < k) {
-        auto [cost, u_local] = pq.top();
-        pq.pop();
-
-        if (in_mst[u_local]) continue;
-        in_mst[u_local] = 1;
-        total += cost;
-        added++;
-
-        int u_global = vertex_subset[u_local];
-        for (int v_local = 0; v_local < k; ++v_local)
-            if (!in_mst[v_local]) {
-                int v_global = vertex_subset[v_local];
-                double w = adj[u_global][v_global];
-                if (w < min_edge[v_local]) {
-                    min_edge[v_local] = w;
-                    pq.push({w, v_local});
-                }
-            }
-    }
-    return total;
-}
+    std::string mst_to_string(const std::vector<int>& vertex_subset, const std::vector<int>& parent) const;
 
 
 };
