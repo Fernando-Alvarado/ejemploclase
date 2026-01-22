@@ -1,2 +1,2 @@
-# Seminario-HOC
-Repositorio para el curso de heuristicas de optimizacion combinatoria
+# TSP con Heuritica de aceptacion por umbrales
+
